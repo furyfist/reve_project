@@ -1,12 +1,12 @@
 const express = require('express');
 const app = express();
 
-// --- Middlewares ---
-
+// Middlewares
 app.use(express.json());
+const userRoutes = require('./routes/users.routes');
 
+app.use('/api', userRoutes);
 
-// A simple root route for testing
 app.get('/', (req, res) => {
   res.send('Reve Backend is running...');
 });
