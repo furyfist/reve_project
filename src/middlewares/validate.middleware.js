@@ -11,7 +11,6 @@ const validate = (schema) => (req, res, next) => {
     return res.status(400).json({ error: error.details[0].message });
   }
 
-  // If validation is successful, pass to the next controller
   next();
 };
 
