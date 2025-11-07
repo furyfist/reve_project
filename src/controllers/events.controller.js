@@ -1,4 +1,5 @@
 const prisma = require('../config/prismaClient');
+const rsvpService = require('../services/rsvp.service');
 
 const createEvent = async (req, res) => {
   try {
@@ -177,10 +178,99 @@ const deleteEvent = async (req, res) => {
   }
 };
 
+const removeRsvp = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { userId } = req.body;
+
+    if (!userId) {
+      return res.status(400).json({ error: 'userId is required in the body' });
+    }
+
+    // We must find the RSVP record by its compound unique key
+    await prisma.rsvp.delete({
+      where: {
+        userId_eventId: {
+          userId: parseInt(userId),
+          eventId: parseInt(id),
+        },
+      },
+    });
+
+    res.status(204).send();
+  } catch (error) {
+    // This is the error code for when the record to delete isn't found
+    if (error.code === 'P2025') {
+      return res.status(404).json({ error: 'RSVP not found' });
+    }
+    console.error('Error removing RSVP:', error);
+    res.status(500).json({ error: 'Error removing RSVP' });
+  }
+};
+
+/**
+ * @route GET /api/events/:id/rsvps
+ * @desc List all users for an event
+ */
+const getRsvpsForEvent = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const rsvps = await prisma.rsvp.findMany({
+      where: {
+        eventId: parseInt(id),
+      },
+      // Include the full user object for each RSVP
+      include: {
+        user: true,
+      },
+    });
+
+    // Transform the data to return a simple list of users
+    const users = rsvps.map((rsvp) => rsvp.user);
+
+    res.status(200).json(users);
+  } catch (error) {
+    console.error('Error fetching RSVPs:', error);
+    res.status(500).json({ error: 'Error fetching RSVPs' });
+  }
+};
+
+const rsvpToEvent = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { userId } = req.body;
+
+    // Create the Rsvp record
+    const newRsvp = await prisma.rsvp.create({
+      data: {
+        eventId: parseInt(id),
+        userId: parseInt(userId),
+      },
+    });
+    await rsvpService.checkRsvpCountAndNotify(parseInt(id));
+
+    res.status(201).json(newRsvp);
+  } catch (error) {
+    // This is the error code for a unique constraint violation
+    // (e.g., user already RSVP'd)
+    if (error.code === 'P2002') {
+      return res
+        .status(409)
+        .json({ error: 'Conflict: User has already RSVPd to this event' });
+    }
+    console.error('Error creating RSVP:', error);
+    res.status(500).json({ error: 'Error creating RSVP' });
+  }
+};
+
 module.exports = {
   createEvent,
   getAllEvents,
   getEventById,
   updateEvent, 
   deleteEvent,
+  rsvpToEvent, 
+  removeRsvp, 
+  getRsvpsForEvent,
 };
