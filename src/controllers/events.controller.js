@@ -20,13 +20,6 @@ const createEvent = async (req, res) => {
   }
 };
 
-/**
- * @route GET /api/events
- * @desc Get all events with optional filters
- * @query upcoming (boolean) - Filter for events with a date >= today
- * @query limit (number) - Limit the number of results
- * @query offset (number) - Skip a number of results (for pagination)
- */
 const getAllEvents = async (req, res) => {
   try {
     const { upcoming, limit, offset } = req.query;
@@ -62,7 +55,59 @@ const getAllEvents = async (req, res) => {
   }
 };
 
+const getEventById = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const event = await prisma.event.findUnique({
+      where: {
+        id: parseInt(id),
+      },
+      // 'include' is how we fetch related data
+      include: {
+        // 1. Get the count of rsvps
+        _count: {
+          select: { rsvps: true },
+        },
+        // 2. Get the list of Rsvp join-table records
+        rsvps: {
+          // 3. For each Rsvp record, include the related User
+          include: {
+            user: true,
+          },
+        },
+      },
+    });
+
+    if (!event) {
+      return res.status(404).json({ error: 'Event not found' });
+    }
+
+    // 1. We want a simple list of users, not the complex Rsvp objects
+    const userList = event.rsvps.map((rsvp) => rsvp.user);
+    // 2. We want a simple 'rsvpCount' number, not the nested '_count' object
+    const rsvpCount = event._count.rsvps;
+
+    // Build the final response object
+    const response = {
+      id: event.id,
+      title: event.title,
+      description: event.description,
+      date: event.date,
+      createdById: event.createdById,
+      rsvpCount: rsvpCount,
+      users: userList, // This is the "user list" from the brief
+    };
+
+    res.status(200).json(response);
+  } catch (error) {
+    console.error('Error fetching event:', error);
+    res.status(500).json({ error: 'Error fetching event' });
+  }
+};
+
 module.exports = {
   createEvent,
   getAllEvents,
+  getEventById,
 };
