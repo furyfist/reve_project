@@ -168,3 +168,133 @@ All endpoints are prefixed with `/api`.
 A Postman collection named `Reve.postman_collection.json` is included in the root of this repository.
 
 You can import this file directly into Postman to have all 12 API endpoints (and their required bodies) pre-configured for easy testing.
+
+## Example cURL Commands
+
+You can also test all routes using cURL from your terminal.
+
+## Users
+
+### 1. Create User (Alice)
+
+```bash
+curl -X POST http://localhost:8000/api/users -H "Content-Type: application/json" -d "{\"name\":\"Alice (Creator)\", \"email\":\"alice@example.com\"}"
+```
+
+### 2. Create User (Bob)
+
+```bash
+curl -X POST http://localhost:8000/api/users -H "Content-Type: application/json" -d "{\"name\":\"Bob (Attendee)\", \"email\":\"bob@example.com\"}"
+```
+
+### 3. List All Users
+
+```bash
+curl http://localhost:8000/api/users
+```
+
+### 4. Get Single User (Alice)
+
+```bash
+curl http://localhost:8000/api/users/1
+```
+
+### 5. Create User (Validation Fail)
+
+```bash
+curl -X POST http://localhost:8000/api/users -H "Content-Type: application/json" -d "{\"name\":\"Test\", \"email\":\"not-an-email\"}"
+```
+
+---
+
+## Events
+
+### 6. Create Event
+
+```bash
+curl -X POST http://localhost:8000/api/events -H "Content-Type: application/json" -d "{\"title\":\"Tech Conference 2025\", \"description\":\"The biggest tech conf of the year.\", \"date\":\"2025-12-01T10:00:00.000Z\", \"createdBy\":1}"
+```
+
+### 7. List Events (with Query Params)
+
+```bash
+curl "http://localhost:8000/api/events?upcoming=true"
+```
+
+### 8. Get Event Details (with RSVP Count)
+
+```bash
+curl http://localhost:8000/api/events/1
+```
+
+### 9. Update Event
+
+```bash
+curl -X PATCH http://localhost:8000/api/events/1 -H "Content-Type: application/json" -d "{\"title\":\"UPDATED: Tech Conference 2025\"}"
+```
+
+---
+
+## RSVPs
+
+### 10. RSVP to Event (Bob RSVPs)
+
+```bash
+curl -X POST http://localhost:8000/api/events/1/rsvp -H "Content-Type: application/json" -d "{\"userId\":2}"
+```
+
+### 11. List Users for Event
+
+```bash
+curl http://localhost:8000/api/events/1/rsvps
+```
+
+### 12. Remove RSVP
+
+```bash
+curl -X DELETE http://localhost:8000/api/events/1/rsvp -H "Content-Type: application/json" -d "{\"userId\":2}"
+```
+
+---
+
+## Delete Logic & Notifications
+
+### 13. Delete Event (Fail - Wrong User)
+
+```bash
+curl -X DELETE http://localhost:8000/api/events/1 -H "Content-Type: application/json" -d "{\"userId\":2}"
+```
+
+### 14. Delete Event (Success - Creator)
+
+```bash
+curl -X DELETE http://localhost:8000/api/events/1 -H "Content-Type: application/json" -d "{\"userId\":1}"
+```
+
+### 15. Test Notification
+
+```bash
+curl -X POST http://localhost:8000/api/notifications/test
+```
+
+---
+
+## Additional Query Examples
+
+### List Events with Limit
+
+```bash
+curl "http://localhost:8000/api/events?limit=10"
+```
+
+### List Events with Offset
+
+```bash
+curl "http://localhost:8000/api/events?offset=5"
+```
+
+### List Events with Multiple Params
+
+```bash
+curl "http://localhost:8000/api/events?upcoming=true&limit=10&offset=0"
+```
