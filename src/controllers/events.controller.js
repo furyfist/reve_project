@@ -106,8 +106,81 @@ const getEventById = async (req, res) => {
   }
 };
 
+const updateEvent = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { title, description, date } = req.body;
+
+    // Create an object for the data to be updated
+    // This allows for partial updates (e.g., only sending a title)
+    const updateData = {};
+    if (title) updateData.title = title;
+    if (description) updateData.description = description;
+    if (date) updateData.date = new Date(date); // Convert string to Date
+
+    const updatedEvent = await prisma.event.update({
+      where: {
+        id: parseInt(id),
+      },
+      data: updateData,
+    });
+
+    res.status(200).json(updatedEvent);
+  } catch (error) {
+    console.error('Error updating event:', error);
+    // Prisma-specific error for when a record is not found
+    if (error.code === 'P2025') {
+      return res.status(404).json({ error: 'Event not found' });
+    }
+    res.status(500).json({ error: 'Error updating event' });
+  }
+};
+
+const deleteEvent = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { userId } = req.body; // Required to check ownership
+
+    // To test this endpoint, you must pass a 'userId' in the request body
+    if (!userId) {
+      return res
+        .status(400)
+        .json({ error: 'userId is required in the body to verify ownership' });
+    }
+
+    const event = await prisma.event.findUnique({
+      where: { id: parseInt(id) },
+    });
+
+    if (!event) {
+      return res.status(404).json({ error: 'Event not found' });
+    }
+
+    // --- Business Logic Check ---
+    // Fulfills the requirement: "only by creator"
+    if (event.createdById !== parseInt(userId)) {
+      return res
+        .status(403)
+        .json({ error: 'Forbidden: You are not the creator of this event' });
+    }
+
+    // If check passes, proceed with deletion
+    await prisma.event.delete({
+      where: { id: parseInt(id) },
+    });
+
+    // 204 No Content is the standard response for a successful DELETE
+    res.status(204).send();
+  } catch (error) {
+    console.error('Error deleting event:', error);
+    res.status(500).json({ error: 'Error deleting event' });
+  }
+};
+
 module.exports = {
   createEvent,
   getAllEvents,
   getEventById,
+  updateEvent, 
+  deleteEvent,
 };
