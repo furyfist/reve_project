@@ -29,20 +29,19 @@ const getAllEvents = async (req, res) => {
       where: {},
     };
 
-    // 1. Filter: Handle 'upcoming' query parameter
-    // We only filter if 'upcoming' is explicitly set to 'true'
+    // Filter: Handle 'upcoming' query parameter
     if (upcoming === 'true') {
       prismaOptions.where.date = {
         gte: new Date(), // 'gte' means "greater than or equal to"
       };
     }
 
-    // 2. Pagination: Handle 'limit'
+    // Pagination: Handle 'limit'
     if (limit) {
       prismaOptions.take = parseInt(limit);
     }
 
-    // 3. Pagination: Handle 'offset'
+    // Pagination: Handle 'offset'
     if (offset) {
       prismaOptions.skip = parseInt(offset);
     }
@@ -64,15 +63,14 @@ const getEventById = async (req, res) => {
       where: {
         id: parseInt(id),
       },
-      // 'include' is how we fetch related data
       include: {
-        // 1. Get the count of rsvps
+        // Get the count of rsvps
         _count: {
           select: { rsvps: true },
         },
-        // 2. Get the list of Rsvp join-table records
+        // Get the list of Rsvp join-table records
         rsvps: {
-          // 3. For each Rsvp record, include the related User
+          // For each Rsvp record, include the related User
           include: {
             user: true,
           },
@@ -84,12 +82,10 @@ const getEventById = async (req, res) => {
       return res.status(404).json({ error: 'Event not found' });
     }
 
-    // 1. We want a simple list of users, not the complex Rsvp objects
     const userList = event.rsvps.map((rsvp) => rsvp.user);
-    // 2. We want a simple 'rsvpCount' number, not the nested '_count' object
     const rsvpCount = event._count.rsvps;
 
-    // Build the final response object
+    // final response object
     const response = {
       id: event.id,
       title: event.title,
@@ -97,7 +93,7 @@ const getEventById = async (req, res) => {
       date: event.date,
       createdById: event.createdById,
       rsvpCount: rsvpCount,
-      users: userList, // This is the "user list" from the brief
+      users: userList, 
     };
 
     res.status(200).json(response);
@@ -112,12 +108,10 @@ const updateEvent = async (req, res) => {
     const { id } = req.params;
     const { title, description, date } = req.body;
 
-    // Create an object for the data to be updated
-    // This allows for partial updates (e.g., only sending a title)
     const updateData = {};
     if (title) updateData.title = title;
     if (description) updateData.description = description;
-    if (date) updateData.date = new Date(date); // Convert string to Date
+    if (date) updateData.date = new Date(date); 
 
     const updatedEvent = await prisma.event.update({
       where: {
@@ -129,7 +123,6 @@ const updateEvent = async (req, res) => {
     res.status(200).json(updatedEvent);
   } catch (error) {
     console.error('Error updating event:', error);
-    // Prisma-specific error for when a record is not found
     if (error.code === 'P2025') {
       return res.status(404).json({ error: 'Event not found' });
     }
@@ -142,7 +135,6 @@ const deleteEvent = async (req, res) => {
     const { id } = req.params;
     const { userId } = req.body; // Required to check ownership
 
-    // To test this endpoint, you must pass a 'userId' in the request body
     if (!userId) {
       return res
         .status(400)
@@ -157,20 +149,16 @@ const deleteEvent = async (req, res) => {
       return res.status(404).json({ error: 'Event not found' });
     }
 
-    // --- Business Logic Check ---
-    // Fulfills the requirement: "only by creator"
     if (event.createdById !== parseInt(userId)) {
       return res
         .status(403)
         .json({ error: 'Forbidden: You are not the creator of this event' });
     }
 
-    // If check passes, proceed with deletion
     await prisma.event.delete({
       where: { id: parseInt(id) },
     });
 
-    // 204 No Content is the standard response for a successful DELETE
     res.status(204).send();
   } catch (error) {
     console.error('Error deleting event:', error);
@@ -208,10 +196,6 @@ const removeRsvp = async (req, res) => {
   }
 };
 
-/**
- * @route GET /api/events/:id/rsvps
- * @desc List all users for an event
- */
 const getRsvpsForEvent = async (req, res) => {
   try {
     const { id } = req.params;
