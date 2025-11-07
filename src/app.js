@@ -3,9 +3,14 @@ const app = express();
 
 // Middlewares
 app.use(express.json());
-const userRoutes = require('./routes/users.routes');
 
+// Import Routes
+const userRoutes = require('./routes/users.routes');
+const eventRoutes = require('./routes/events.routes');
+
+// Routes
 app.use('/api', userRoutes);
+app.use('/api', eventRoutes);
 
 app.get('/', (req, res) => {
   res.send('Reve Backend is running...');
